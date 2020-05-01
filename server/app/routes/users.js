@@ -4,7 +4,7 @@ const router = require('express-promise-router')();
 const UsersController = require('../controllers/users');
 const { signUp, signIn, secret } = UsersController;
 
-const { validator, authValidationRules } = require('../helpers/routerHelpers');
+const { validator, authValidationRules } = require('../helpers/routerValidator');
 
 router.route('/signup').post(authValidationRules(), validator, signUp);
 

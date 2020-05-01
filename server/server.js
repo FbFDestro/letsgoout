@@ -3,6 +3,9 @@ const morgan = require('morgan');
 
 const app = express();
 
+// Initialize env variables
+require('dotenv').config();
+
 // Middlewares
 app.use(morgan('dev'));
 app.use(express.json());

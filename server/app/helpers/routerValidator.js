@@ -1,4 +1,4 @@
-const { check, validationResult } = require('express-validator');
+const { body, check, validationResult } = require('express-validator');
 
 const validator = (req, res, next) => {
   const errors = validationResult(req);
@@ -14,6 +14,8 @@ const authValidationRules = () => {
   return [
     check('email', 'Email is required').not().isEmpty(),
     check('email', 'Please include a valid email').isEmail(),
+    body('email').normalizeEmail(),
+    check('name', 'Name is required').not().isEmpty(),
     check('password', 'Password is required').not().isEmpty(),
   ];
 };
