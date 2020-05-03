@@ -61,7 +61,6 @@ const registerNewUser = async (user) => {
  * @param {*} password
  * @returns JWT of logged user
  */
-
 const signInUser = async (email, password) => {
   const foundUser = await findByEmail(email);
   if (!foundUser) {

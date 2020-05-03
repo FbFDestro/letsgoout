@@ -2,6 +2,7 @@ create table users (
 	id serial primary key,
 	email varchar(100) not null,
 	name varchar(100) not null,
+	password varchar(60) not null,
 	fb_user_id varchar(100)
 );
 

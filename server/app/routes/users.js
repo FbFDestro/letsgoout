@@ -1,8 +1,11 @@
-//const express = require('express');
 const router = require('express-promise-router')();
 
+const passport = require('passport');
+const passportConf = require('../middlewares/fb-authentication');
+const passportFB = passport.authenticate('facebookToken', { session: false });
+
 const UsersController = require('../controllers/users');
-const { signUp, signIn, secret } = UsersController;
+const { signUp, signIn, signInFB, secret } = UsersController;
 const { verifyToken } = require('../middlewares/authentication');
 
 const {
@@ -13,6 +16,7 @@ const {
 
 router.route('/signup').post(signUpValidationRules(), validator, signUp);
 router.route('/signin').post(signInValidationRules(), validator, signIn);
+router.route('/oauth/fb').post(passportFB, signInFB);
 router.route('/secret').get(verifyToken, secret);
 
 module.exports = router;

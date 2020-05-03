@@ -28,6 +28,11 @@ const signIn = async (req, res, next) => {
   console.log('UserController.signIn() called!');
 };
 
+const signInFB = async (req, res, next) => {
+  console.log(req.user);
+  res.status(200).json({ rola: 'rola' });
+};
+
 const secret = async (req, res, next) => {
   console.log('UserController.secret() called!');
   res.status(200).send('Protected route available');
@@ -36,5 +41,6 @@ const secret = async (req, res, next) => {
 module.exports = {
   signUp,
   signIn,
+  signInFB,
   secret,
 };
