@@ -10,7 +10,7 @@ function UsersDbException(message, owner) {
 /**
  * Find all users by email
  * @param {*} email
- * @returns All users rows with specific email
+ * @returns User rows with specific email
  */
 const findByEmail = async (email) => {
   try {
@@ -18,7 +18,7 @@ const findByEmail = async (email) => {
       text: 'select * from users where email = $1',
       values: [email],
     });
-    return result.rows;
+    return result.rows[0];
   } catch (error) {
     throw new UsersDbException(error.message, 'findByEmail'); // this message can be customized
   }

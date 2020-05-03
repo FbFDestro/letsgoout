@@ -2,11 +2,11 @@ const JWT = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { findByEmail, insertUser } = require('../db/users');
 
-function UsersServiceException(message, owner) {
+function UsersServiceException(message, owner, code) {
   this.message = message;
   this.name = 'UsersServiceException';
   this.ownerFunction = owner;
-  this.code = 403;
+  this.code = code;
 }
 
 /**
@@ -14,14 +14,14 @@ function UsersServiceException(message, owner) {
  * @param {*} userId
  * @returns JWT signed
  */
-const signToken = (userId) => {
+const signToken = (user) => {
   return JWT.sign(
     {
-      user: userId, // change user ID to some more relevant info (Name, email)
+      user,
       iat: new Date().getTime(), // current time
-      exp: new Date().setDate(new Date().getDate() + 2), // current time + 1 day ahead
     },
-    process.env.JWTSECRET
+    process.env.JWTSECRET,
+    { expiresIn: '3 days' }
   );
 };
 
@@ -32,7 +32,7 @@ const signToken = (userId) => {
  */
 const foundUserByEmail = async (email) => {
   const foundUser = await findByEmail(email);
-  if (foundUser.length > 0) {
+  if (foundUser) {
     return true;
   }
   return false;
@@ -45,13 +45,36 @@ const foundUserByEmail = async (email) => {
  */
 const registerNewUser = async (user) => {
   if (await foundUserByEmail(user.email)) {
-    throw new UsersServiceException('Email is already in use', 'registerNewUser');
+    throw new UsersServiceException('Email is already in use', 'registerNewUser', 403);
   }
 
+  const salt = await bcrypt.genSalt(10);
+  user.password = await bcrypt.hash(user.password, salt);
+
   const newUserId = await insertUser(user);
-  return signToken(newUserId);
+  return signToken({ email: user.email, name: user.name, id: newUserId });
+};
+
+/**
+ * Sign in an user
+ * @param {*} email
+ * @param {*} password
+ * @returns JWT of logged user
+ */
+
+const signInUser = async (email, password) => {
+  const foundUser = await findByEmail(email);
+  if (!foundUser) {
+    throw new UsersServiceException('No user found with this email', 'signInUser', 401);
+  }
+  if (!(await bcrypt.compare(password, foundUser.password))) {
+    throw new UsersServiceException('Invalid password', 'signInUser', 401);
+  }
+
+  return signToken({ email: foundUser.email, name: foundUser.name, id: foundUser.id });
 };
 
 module.exports = {
   registerNewUser,
+  signInUser,
 };

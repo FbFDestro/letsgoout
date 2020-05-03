@@ -10,17 +10,29 @@ const validator = (req, res, next) => {
   return next();
 };
 
-const authValidationRules = () => {
-  return [
+const checkers = {
+  email: [
     check('email', 'Email is required').not().isEmpty(),
     check('email', 'Please include a valid email').isEmail(),
     body('email').normalizeEmail(),
+  ],
+  password: check('password', 'Password is required').not().isEmpty(),
+};
+
+const signUpValidationRules = () => {
+  return [
+    ...checkers.email,
     check('name', 'Name is required').not().isEmpty(),
-    check('password', 'Password is required').not().isEmpty(),
+    checkers.password,
   ];
+};
+
+const signInValidationRules = () => {
+  return [...checkers.email, checkers.password];
 };
 
 module.exports = {
   validator,
-  authValidationRules,
+  signUpValidationRules,
+  signInValidationRules,
 };
