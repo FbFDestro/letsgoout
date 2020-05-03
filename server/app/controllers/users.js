@@ -1,29 +1,16 @@
-const pool = require('../db/pool');
-
 const signUp = async (req, res, next) => {
   const { email, name, password } = req.body;
-
-  // check if ther is a user with the same email
-  const foundUser = await pool.query({
-    text: 'select * from users where email = $1',
-    values: [email],
-  });
-
-  if (foundUser.rowCount > 0) {
-    return res.status(403).json({ errors: [{ msg: 'Email is already in use' }] });
+  const { registerNewUser } = require('../services/users');
+  try {
+    var newUserJWT = await registerNewUser({ email, name, password });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(error.code || 500)
+      .json({ errors: [{ msg: `${error.name} - ${error.message}` }] });
   }
 
-  // I need to change the table to contain a password field!
-  const newUser = await pool.query({
-    text: 'insert into users (email, name) VALUES ($1, $2) returning id',
-    values: [email, name],
-  });
-
-  console.log(newUser);
-
-  // return token
-
-  res.status(200).send('rola');
+  res.status(200).json({ newUserJWT });
 };
 
 const signIn = async (req, res, next) => {
