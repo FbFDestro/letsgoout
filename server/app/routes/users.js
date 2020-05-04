@@ -17,7 +17,6 @@ const {
 router.route('/signup').post(signUpValidationRules(), validator, signUp);
 router.route('/signin').post(signInValidationRules(), validator, signIn);
 router.route('/oauth/fb').post(passportFB, signInFB);
-router.route('/oauth/fb/finishSignin').post(passportFB, signInFB);
 router.route('/secret').get(verifyToken, secret);
 
 module.exports = router;

@@ -52,16 +52,21 @@ const foundUserByEmail = async (email) => {
  * @param {*} user (email, name, password)
  * @returns Json web token of the new user
  */
-const registerNewUser = async (user, force) => {
+const registerNewUser = async (user, force = false) => {
   const foundLocalUser = await findByEmail(user.email, 'local');
   if (foundLocalUser) {
     throw new UsersServiceException('Email is already in use', 'registerNewUser', 403);
+  }
+  const foundByUsername = await findByUsername(user.username);
+  if (foundByUsername) {
+    throw new UsersServiceException('Username is already in use', 'signInFBUser', 403);
   }
   if (!force) {
     const foundFbUser = await findByEmail(user.email, 'fb');
     if (foundFbUser) {
       throw new UsersServiceException(
         'You already have an account using Facebook Login. To avoid creating multiple acconuts, login with Facebook',
+        'registerNewUser',
         409
       );
     }
@@ -117,9 +122,22 @@ const signInLocalUser = async (email, password) => {
   });
 };
 
-const signInFBUser = async (user) => {
+const signInFBUser = async (user, force = false) => {
   let foundUser = await findByFBId(user.fb_id);
   if (!foundUser) {
+    // check if there is an account with this email already in local login to suggest to login that account and merge those accounts
+    // maybe by adding force (same as in registernewuser)
+    if (!force) {
+      const foundByLocalEmail = await findByEmail(user.email, 'local');
+      if (foundByLocalEmail) {
+        throw new UsersServiceException(
+          'You already have an account with the same email as your Facebook. To avoid creating multiple acconuts, login with your account and connect your Facebook with it if desired.',
+          'signInFbUser',
+          409
+        );
+      }
+    }
+
     if (!user.username) {
       // send info to client asking for username to complete insertion
       return { user };
@@ -129,8 +147,6 @@ const signInFBUser = async (user) => {
       throw new UsersServiceException('Username is already in use', 'signInFBUser', 403);
     }
     // check if username is availabe
-
-    // check if there is an account with this email already in local login to suggest to login that account and merge those accounts
 
     const newUserId = await insertUser(user, 'fb');
     return {

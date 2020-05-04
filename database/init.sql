@@ -13,7 +13,7 @@ drop table if exists user_event cascade;
 create table users (
 	id serial primary key,
 	name varchar(100) not null,
-	username varchar(40) unique
+	username varchar(40) unique not null
     /* can add other data like picture */
 );
 

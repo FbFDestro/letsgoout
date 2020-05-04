@@ -27,16 +27,10 @@ const signIn = async (req, res, next) => {
 
 const signInFB = async (req, res, next) => {
   const { signInFBUser } = require('../services/users');
-  /*
-  if (!req.user) {
-    req.user = req.body.user;
-  }
-  */
-
-  const { username } = req.body;
+  const { username, force } = req.body;
   const user = { ...req.user, username };
   try {
-    const signInResponse = await signInFBUser(user);
+    const signInResponse = await signInFBUser(user, force);
     if (signInResponse.JWT) {
       // successful login
       res.status(200).json({ token: signInResponse.JWT });
