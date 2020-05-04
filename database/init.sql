@@ -1,9 +1,41 @@
+drop table if exists users cascade;
+
+drop table if exists local_users cascade;
+
+drop table if exists fb_users cascade;
+
+drop table if exists event cascade;
+
+drop table if exists user_relationship cascade;
+
+drop table if exists user_event cascade;
+
 create table users (
 	id serial primary key,
-	email varchar(100) not null,
 	name varchar(100) not null,
-	password varchar(60) not null,
-	fb_user_id varchar(100)
+	username varchar(40) unique
+    /* can add other data like picture */
+);
+
+
+create table local_users  (
+    email varchar(100) primary key,
+    password varchar(60) not null,
+    users_id integer,
+
+    constraint fk_local_users
+        foreign key(users_id)
+        references users(id)
+);
+
+create table fb_users(
+    fb_id varchar(100) primary key,
+    email varchar(100) not null unique,
+    users_id integer,
+
+    constraint fk_fb_users
+        foreign key(users_id)
+        references  users(id)
 );
 
 create table event (

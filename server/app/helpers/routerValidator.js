@@ -23,6 +23,7 @@ const signUpValidationRules = () => {
   return [
     ...checkers.email,
     check('name', 'Name is required').not().isEmpty(),
+    check('username', 'Username is required').not().isEmpty(),
     checkers.password,
   ];
 };

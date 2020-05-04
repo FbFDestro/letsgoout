@@ -10,32 +10,20 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        console.log('profile', profile);
-        console.log('accessToken', accessToken);
-        console.log('refreshToken', refreshToken);
-
-        /*
-        const existingUser = await User.findOne({ 'facebook.id': profile.id });
-        if (existingUser) {
-          return done(null, existingUser);
-        }
-
-        const newUser = new User({
-          method: 'facebook',
-          facebook: {
-            id: profile.id,
-            email: profile.emails[0].value,
-          },
-        });
-
-        await newUser.save();
-        */
+        //console.log('profile', profile);
+        // console.log('accessToken', accessToken);
+        // console.log('refreshToken', refreshToken);
 
         const user = {
-          rola: 'mamaminha',
+          name: profile.displayName,
+          email: profile.emails[0].value,
+          fb_id: profile.id,
+          access_token: accessToken,
         };
+
         done(null, user);
       } catch (error) {
+        console.log(error);
         done(error, false, error.message);
       }
     }
