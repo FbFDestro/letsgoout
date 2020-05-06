@@ -18,7 +18,6 @@ passport.use(
           name: profile.displayName,
           email: profile.emails[0].value,
           fb_id: profile.id,
-          access_token: accessToken,
         };
 
         done(null, user);

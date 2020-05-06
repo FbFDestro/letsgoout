@@ -2,7 +2,8 @@ const JWT = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const {
   findByEmail,
-  findByFBId,
+  findByFbId,
+  findByEmailOrUsernameJoined,
   findByUsername,
   insertUser,
   joinUser,
@@ -52,21 +53,21 @@ const foundUserByEmail = async (email) => {
  * @param {*} user (email, name, password)
  * @returns Json web token of the new user
  */
-const registerNewUser = async (user, force = false) => {
+const signUpNewUser = async (user, force = false) => {
   const foundLocalUser = await findByEmail(user.email, 'local');
   if (foundLocalUser) {
-    throw new UsersServiceException('Email is already in use', 'registerNewUser', 403);
+    throw new UsersServiceException('Email is already in use', 'signUpNewUser', 403);
   }
   const foundByUsername = await findByUsername(user.username);
   if (foundByUsername) {
-    throw new UsersServiceException('Username is already in use', 'signInFBUser', 403);
+    throw new UsersServiceException('Username is already in use', 'signInFbUser', 403);
   }
   if (!force) {
     const foundFbUser = await findByEmail(user.email, 'fb');
     if (foundFbUser) {
       throw new UsersServiceException(
         'You already have an account using Facebook Login. To avoid creating multiple acconuts, login with Facebook',
-        'registerNewUser',
+        'signUpNewUser',
         409
       );
     }
@@ -90,24 +91,22 @@ const registerNewUser = async (user, force = false) => {
  * @param {*} password
  * @returns JWT of logged user
  */
-const signInLocalUser = async (email, password) => {
-  let foundUser = await findByEmail(email, 'local');
+const signInLocalUser = async (email_username, password) => {
+  const foundUser = await findByEmailOrUsernameJoined(email_username, 'local');
   if (!foundUser) {
-    const foundFbUser = await findByEmail(email, 'fb');
+    const foundFbUser = await findByEmailOrUsernameJoined(email_username, 'fb');
     if (foundFbUser) {
       throw new UsersServiceException(
-        'You already have an account using Facebook Login. Try to login via Facebook.',
+        'You already have an account using Facebook Login with this email or username. Try to login via Facebook.',
         403
       );
     }
     throw new UsersServiceException(
-      'No user found with this email',
+      'No user found with this email or username',
       'signInLocalUser',
       401
     );
   }
-
-  foundUser = await joinUser(foundUser.users_id, 'local'); // get local user info by inner join
 
   if (!(await bcrypt.compare(password, foundUser.password))) {
     throw new UsersServiceException('Invalid password', 'signInLocalUser', 401);
@@ -122,42 +121,16 @@ const signInLocalUser = async (email, password) => {
   });
 };
 
-const signInFBUser = async (user, force = false) => {
-  let foundUser = await findByFBId(user.fb_id);
+const trySignInFbUser = async (user) => {
+  const foundUser = await findByFbId(user.fb_id, true);
   if (!foundUser) {
-    // check if there is an account with this email already in local login to suggest to login that account and merge those accounts
-    // maybe by adding force (same as in registernewuser)
-    if (!force) {
-      const foundByLocalEmail = await findByEmail(user.email, 'local');
-      if (foundByLocalEmail) {
-        throw new UsersServiceException(
-          'You already have an account with the same email as your Facebook. To avoid creating multiple acconuts, login with your account and connect your Facebook with it if desired.',
-          'signInFbUser',
-          409
-        );
-      }
-    }
-
-    if (!user.username) {
-      // send info to client asking for username to complete insertion
-      return { user };
-    }
-    const foundByUsername = await findByUsername(user.username);
-    if (foundByUsername) {
-      throw new UsersServiceException('Username is already in use', 'signInFBUser', 403);
-    }
-    // check if username is availabe
-
-    const newUserId = await insertUser(user, 'fb');
+    const foundByLocalEmail = await findByEmail(user.email, 'local'); // suggest to login with local account and merge
+    const jwt_fb_id = JWT.sign(user.fb_id, process.env.JWTSECRET); // fb_id can't be modified by user
+    delete user.fb_id;
     return {
-      JWT: signToken({
-        ...user,
-        id: newUserId,
-      }),
-    };
+      fbUserData: { ...user, jwt_fb_id, hasLocalEmailEqual: !!foundByLocalEmail },
+    }; // send back user fb data, allowing editting and adding username
   }
-
-  foundUser = await joinUser(foundUser.users_id, 'fb'); // get local user info by inner join
 
   return {
     JWT: signToken({
@@ -168,11 +141,46 @@ const signInFBUser = async (user, force = false) => {
       id: foundUser.id,
     }),
   };
-  // check if current user already exists, if so, login into it, otherwise createit
+};
+
+const signUpFbUser = async (user) => {
+  try {
+    var fb_id = JWT.verify(user.jwt_fb_id, process.env.JWTSECRET);
+  } catch (error) {
+    throw new UsersServiceException(
+      'FB id token invalid! Try to login with Facebook again.',
+      'signUpFbUser',
+      401
+    );
+  }
+
+  let foundUser = await findByFbId(fb_id, false);
+  if (foundUser) {
+    throw new UsersServiceException('Fb account is already in use', 'signUpFbUser', 403);
+  }
+  foundUser = await findByEmail(user.email, 'local');
+  foundUser = foundUser || (await findByEmail(user.email, 'fb'));
+  if (foundUser) {
+    throw new UsersServiceException('Email is already in use', 'signUpFbUser', 403);
+  }
+  foundUser = await findByUsername(user.username);
+  if (foundUser) {
+    throw new UsersServiceException('Username is already in use', 'signInFbUser', 403);
+  }
+
+  user.fb_id = fb_id; // to be sure if hasn't been changed
+  const newUserId = await insertUser(user, 'fb');
+  return {
+    JWT: signToken({
+      ...user,
+      id: newUserId,
+    }),
+  };
 };
 
 module.exports = {
-  registerNewUser,
+  signUpNewUser,
   signInLocalUser,
-  signInFBUser,
+  trySignInFbUser,
+  signUpFbUser,
 };
